@@ -9,18 +9,31 @@ import { DatabaseInitService } from './database-init.service';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'mysql',
-        host: configService.get<string>('DB_HOST'),
-        port: Number(configService.get<string>('DB_PORT', '3306')),
-        username: configService.get<string>('DB_USERNAME'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_DATABASE'),
-        synchronize: configService.get<string>('DB_SYNCHRONIZE') === 'true',
-        logging: configService.get<string>('DB_LOGGING') === 'true',
-        autoLoadEntities: true,
-        // TODO (estudiante): Agrega la configuración SSL si tu proveedor de base de datos lo requiere.
-      }),
+      useFactory: (configService: ConfigService) => {
+        const sslEnabled =
+          configService.get<string>('DB_SSL_ENABLED') === 'true';
+        const sslCa = configService
+          .get<string>('DB_SSL_CA')
+          ?.replace(/\\n/g, '\n');
+
+        return {
+          type: 'mysql',
+          host: configService.get<string>('DB_HOST'),
+          port: Number(configService.get<string>('DB_PORT', '3306')),
+          username: configService.get<string>('DB_USERNAME'),
+          password: configService.get<string>('DB_PASSWORD'),
+          database: configService.get<string>('DB_DATABASE'),
+          synchronize: configService.get<string>('DB_SYNCHRONIZE') === 'true',
+          logging: configService.get<string>('DB_LOGGING') === 'true',
+          autoLoadEntities: true,
+          ssl: sslEnabled
+            ? {
+                ca: sslCa,
+                rejectUnauthorized: true,
+              }
+            : undefined,
+        };
+      },
     }),
     UsersModule,
   ],
